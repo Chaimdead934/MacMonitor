@@ -151,7 +151,25 @@ The installer will:
 4. Eject the DMG
 5. Open MacMonitor from Applications (or Spotlight: `Cmd+Space` → "MacMonitor")
 
-> **First launch on macOS:** If you see "MacMonitor cannot be opened because it is from an unidentified developer", go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway**. This happens once because the app isn't notarised (no paid Apple Developer account required).
+> **macOS security warning?** Because MacMonitor isn't notarised (no paid Apple Developer account), macOS may block it on first launch. Fix it in **one of these two ways:**
+>
+> **Option 1 — Double-click the helper script (easiest)**
+>
+> The DMG includes an **`Install.command`** file. Double-click it and enter your password when prompted. It removes the quarantine flag automatically and you're done.
+>
+> **Option 2 — Terminal (one command)**
+>
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/MacMonitor.app
+> ```
+>
+> Then launch MacMonitor normally.
+>
+> **Option 3 — System Settings**
+>
+> Go to **System Settings → Privacy & Security**, scroll down to the blocked app notice, and click **Open Anyway**.
+>
+> You only need to do this once. After that, MacMonitor opens like any other app.
 
 ---
 

@@ -101,6 +101,13 @@ cp -R "$APP_PATH" "$STAGING/"
 
 # Applications symlink — gives users the drag-and-drop target
 ln -s /Applications "$STAGING/Applications"
+
+# Include the quarantine-removal helper script
+SCRIPT_SRC="$(dirname "$0")/../Install.command"
+if [ -f "$SCRIPT_SRC" ]; then
+    cp "$SCRIPT_SRC" "$STAGING/Install.command"
+    chmod +x "$STAGING/Install.command"
+fi
 ok "Staged"
 
 # ── Create DMG ────────────────────────────────────────────────────────────────
