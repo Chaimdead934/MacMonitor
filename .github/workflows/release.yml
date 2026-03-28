@@ -1,0 +1,43 @@
+name: Release
+
+# Triggers when you push a version tag — e.g.  git tag v1.2.0 && git push origin v1.2.0
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+
+jobs:
+  build-dmg:
+    name: Build & publish DMG
+    runs-on: macos-latest          # Apple Silicon runners on GitHub Actions
+
+    permissions:
+      contents: write              # needed to create the release and upload assets
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ── 2. Install mactop (needed to avoid xcodebuild warnings) ───────────────
+      - name: Install mactop
+        run: brew install mactop
+
+      # ── 3. Build DMG ───────────────────────────────────────────────────────────
+      - name: Build release DMG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"   # strip leading "v"
+          export MACMONITOR_VERSION="$VERSION"
+          chmod +x scripts/build-dmg.sh
+          ./scripts/build-dmg.sh
+
+      # ── 4. Publish GitHub Release ──────────────────────────────────────────────
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/MacMonitor-*.dmg \
+            --title "MacMonitor $GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

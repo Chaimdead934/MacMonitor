@@ -1,0 +1,29 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# DMG build output
+dist/
+*.dmg
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Instruments
+timeline.xctimeline
+playground.xcplayground
