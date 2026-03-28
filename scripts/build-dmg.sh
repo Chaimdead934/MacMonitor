@@ -42,18 +42,24 @@ ok "Clean"
 
 # ── Archive ───────────────────────────────────────────────────────────────────
 step "Building Release archive (this takes ~1 min)..."
+
+# In CI show full output so failures are visible; locally filter to keep it tidy
+XCODE_OUTPUT_CMD="grep -E '^(error:|warning:|Archive|BUILD)' || true"
+[ -n "${CI:-}" ] && XCODE_OUTPUT_CMD="cat"
+
 xcodebuild archive \
     -project "$PROJECT" \
     -scheme  "$SCHEME" \
     -configuration Release \
     -archivePath "$ARCHIVE" \
     -destination "generic/platform=macOS" \
-    CODE_SIGN_IDENTITY="-" \
+    CODE_SIGN_IDENTITY="" \
     CODE_SIGNING_REQUIRED=NO \
     CODE_SIGNING_ALLOWED=NO \
-    2>&1 | grep -E "^(error:|warning: |Archive|BUILD)" || true
+    DEVELOPMENT_TEAM="" \
+    2>&1 | eval "$XCODE_OUTPUT_CMD"
 
-[ -d "$ARCHIVE" ] || fail "Archive failed — run xcodebuild manually to see full error"
+[ -d "$ARCHIVE" ] || fail "Archive failed — check the xcodebuild output above"
 ok "Archive complete"
 
 # ── Export .app ───────────────────────────────────────────────────────────────

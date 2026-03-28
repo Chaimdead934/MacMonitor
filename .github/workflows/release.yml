@@ -19,12 +19,18 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # ── 2. Install mactop (needed to avoid xcodebuild warnings) ───────────────
+      # ── 2. Show available Xcode versions ──────────────────────────────────────
+      - name: Xcode version
+        run: xcodebuild -version
+
+      # ── 3. Install mactop ─────────────────────────────────────────────────────
       - name: Install mactop
         run: brew install mactop
 
-      # ── 3. Build DMG ───────────────────────────────────────────────────────────
+      # ── 4. Build DMG ───────────────────────────────────────────────────────────
       - name: Build release DMG
+        env:
+          CI: true
         run: |
           VERSION="${GITHUB_REF_NAME#v}"   # strip leading "v"
           export MACMONITOR_VERSION="$VERSION"
