@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="Macmonitor/Assets.xcassets/logo.svg" alt="MacMonitor Logo" width="120" />
+
 # MacMonitor
 
 **The most complete Apple Silicon system monitor that fits in your menu bar.**
