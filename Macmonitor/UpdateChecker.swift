@@ -101,6 +101,13 @@ final class UpdateChecker: ObservableObject {
     private func install(dmg: URL) {
         DispatchQueue.main.async { self.updatePhase = .installing }
 
+        // Strip quarantine from downloaded DMG so Gatekeeper doesn't block the mount
+        let xattr = Process()
+        xattr.executableURL = URL(fileURLWithPath: "/usr/bin/xattr")
+        xattr.arguments = ["-dr", "com.apple.quarantine", dmg.path]
+        xattr.standardOutput = Pipe(); xattr.standardError = Pipe()
+        try? xattr.launch(); xattr.waitUntilExit()
+
         // Mount DMG
         let mountTask = Process()
         mountTask.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
@@ -125,8 +132,8 @@ final class UpdateChecker: ObservableObject {
         let srcApp  = (mountPoint as NSString).appendingPathComponent(appName)
         let destApp = "/Applications/MacMonitor.app"
 
-        // Replace app — prompts for admin password if needed (standard macOS dialog)
-        let script = "do shell script \"rm -rf '\(destApp)' && cp -R '\(srcApp)' '\(destApp)'\" with administrator privileges"
+        // Replace app and strip quarantine — prompts for admin password if needed
+        let script = "do shell script \"rm -rf '\(destApp)' && cp -R '\(srcApp)' '\(destApp)' && xattr -dr com.apple.quarantine '\(destApp)'\" with administrator privileges"
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         p.arguments = ["-e", script]
