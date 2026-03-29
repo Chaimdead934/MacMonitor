@@ -162,6 +162,11 @@ struct SmallView: View {
                     Spacer()
                     Text(e.date, style: .time).font(.system(size: 9)).foregroundColor(.gray)
                 }
+                Link(destination: URL(string: "https://razorpay.me/@ryyansafar")!) {
+                    Text("by ryyansafar · support ♥")
+                        .font(.system(size: 8))
+                        .foregroundColor(.gray.opacity(0.6))
+                }
             }
             .padding(11)
         }
@@ -195,6 +200,12 @@ struct MediumView: View {
                     InfoRow(label: "RAM used", val: e.memUsed,  color: .white)
                     InfoRow(label: "RAM total",val: e.memTotal, color: .gray)
                     InfoRow(label: "CPU load", val: "\(e.cpu)%",color: barColor(e.cpu))
+                    Spacer(minLength: 0)
+                    Link(destination: URL(string: "https://razorpay.me/@ryyansafar")!) {
+                        Text("by ryyansafar · support ♥")
+                            .font(.system(size: 8))
+                            .foregroundColor(.gray.opacity(0.6))
+                    }
                 }
                 .frame(maxWidth: .infinity)
             }

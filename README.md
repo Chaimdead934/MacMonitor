@@ -364,6 +364,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide, including dev setup, 
 
 MacMonitor is free and open source. If it saves you time or you just like it, a coffee goes a long way:
 
+[![Portfolio](https://img.shields.io/badge/Portfolio-ryyansafar.site-000000?logo=safari&logoColor=white)](https://ryyansafar.site)
+[![GitHub](https://img.shields.io/badge/GitHub-ryyansafar-181717?logo=github&logoColor=white)](https://github.com/ryyansafar)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ryyansafar-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/ryyansafar)
 [![PayPal](https://img.shields.io/badge/PayPal-ryyansafar-00457C?logo=paypal&logoColor=white)](https://www.paypal.com/paypalme/ryyansafar)
 [![Razorpay](https://img.shields.io/badge/Razorpay-ryyansafar-02042B?logo=razorpay&logoColor=white)](https://razorpay.me/@ryyansafar)

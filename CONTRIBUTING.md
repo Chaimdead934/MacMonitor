@@ -209,6 +209,8 @@ Users running `brew upgrade --cask macmonitor` get the new version automatically
 
 If you'd like to support development:
 
+- [ryyansafar.site](https://ryyansafar.site)
+- [github.com/ryyansafar](https://github.com/ryyansafar)
 - [buymeacoffee.com/ryyansafar](https://buymeacoffee.com/ryyansafar)
 - [paypal.me/ryyansafar](https://www.paypal.com/paypalme/ryyansafar)
 - [razorpay.me/@ryyansafar](https://razorpay.me/@ryyansafar)
