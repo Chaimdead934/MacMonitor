@@ -14,9 +14,20 @@ final class UpdateChecker: ObservableObject {
     private let apiURL = URL(string: "https://api.github.com/repos/ryyansafar/MacMonitor/releases/latest")!
     private let releasesURL = URL(string: "https://github.com/ryyansafar/MacMonitor/releases/latest")!
 
-    @Published private(set) var updateAvailable = false
-    @Published private(set) var latestVersion   = ""
+    @Published private(set) var updateAvailable   = false
+    @Published private(set) var latestVersion     = ""
+    @Published private(set) var updatePhase: UpdatePhase = .idle
+    @Published private(set) var downloadFraction: Double  = 0
 
+    enum UpdatePhase: Equatable {
+        case idle
+        case downloading
+        case installing
+        case readyToRelaunch
+        case failed(String)
+    }
+
+    private var progressObs: NSKeyValueObservation?
     private init() {}
 
     // MARK: - Public
@@ -42,8 +53,107 @@ final class UpdateChecker: ObservableObject {
         }.resume()
     }
 
-    func openReleasesPage() {
-        NSWorkspace.shared.open(releasesURL)
+    // MARK: - In-app update
+
+    func startUpdate() {
+        guard updateAvailable, !latestVersion.isEmpty else { return }
+        let version = latestVersion
+        let dmgName = "MacMonitor-\(version).dmg"
+        guard let url = URL(string: "https://github.com/ryyansafar/MacMonitor/releases/download/v\(version)/\(dmgName)") else { return }
+
+        updatePhase = .downloading
+        downloadFraction = 0
+
+        let dest = FileManager.default.temporaryDirectory.appendingPathComponent(dmgName)
+
+        let task = URLSession.shared.downloadTask(with: url) { [weak self] tmpURL, _, error in
+            guard let self else { return }
+            if let error {
+                self.fail(error.localizedDescription); return
+            }
+            guard let tmpURL else { self.fail("Download failed"); return }
+            try? FileManager.default.removeItem(at: dest)
+            do {
+                try FileManager.default.moveItem(at: tmpURL, to: dest)
+            } catch {
+                self.fail("Could not save download"); return
+            }
+            self.install(dmg: dest)
+        }
+
+        progressObs = task.progress.observe(\.fractionCompleted, options: .new) { [weak self] p, _ in
+            DispatchQueue.main.async { self?.downloadFraction = p.fractionCompleted }
+        }
+        task.resume()
+    }
+
+    func relaunch() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/MacMonitor.app"))
+        NSApp.terminate(nil)
+    }
+
+    func dismissUpdateError() {
+        updatePhase = .idle
+    }
+
+    // MARK: - Install
+
+    private func install(dmg: URL) {
+        DispatchQueue.main.async { self.updatePhase = .installing }
+
+        // Mount DMG
+        let mountTask = Process()
+        mountTask.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        mountTask.arguments = ["attach", dmg.path, "-nobrowse", "-plist"]
+        let pipe = Pipe()
+        mountTask.standardOutput = pipe
+        mountTask.standardError  = Pipe()
+        guard (try? mountTask.launch()) != nil else { fail("Could not mount update"); return }
+        mountTask.waitUntilExit()
+
+        let plistData = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let plist     = try? PropertyListSerialization.propertyList(from: plistData, format: nil) as? [String: Any],
+              let entities  = plist["system-entities"] as? [[String: Any]],
+              let mountPoint = entities.compactMap({ $0["mount-point"] as? String }).first
+        else { fail("Could not read mount point"); return }
+
+        // Find .app in the DMG
+        let contents = (try? FileManager.default.contentsOfDirectory(atPath: mountPoint)) ?? []
+        guard let appName = contents.first(where: { $0.hasSuffix(".app") }) else {
+            detach(mountPoint); fail("App not found in update package"); return
+        }
+        let srcApp  = (mountPoint as NSString).appendingPathComponent(appName)
+        let destApp = "/Applications/MacMonitor.app"
+
+        // Replace app — prompts for admin password if needed (standard macOS dialog)
+        let script = "do shell script \"rm -rf '\(destApp)' && cp -R '\(srcApp)' '\(destApp)'\" with administrator privileges"
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        p.arguments = ["-e", script]
+        p.standardOutput = Pipe(); p.standardError = Pipe()
+        guard (try? p.launch()) != nil else {
+            detach(mountPoint); fail("Could not run installer"); return
+        }
+        p.waitUntilExit()
+
+        detach(mountPoint)
+        try? FileManager.default.removeItem(at: dmg)
+
+        DispatchQueue.main.async {
+            self.updatePhase = p.terminationStatus == 0 ? .readyToRelaunch : .failed("Install cancelled")
+        }
+    }
+
+    private func detach(_ path: String) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        p.arguments = ["detach", path, "-quiet"]
+        p.standardOutput = Pipe(); p.standardError = Pipe()
+        try? p.launch(); p.waitUntilExit()
+    }
+
+    private func fail(_ message: String) {
+        DispatchQueue.main.async { self.updatePhase = .failed(message) }
     }
 
     // MARK: - Private

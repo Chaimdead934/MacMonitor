@@ -423,22 +423,72 @@ struct SettingsSheet: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("MacMonitor  v\(updater.currentVersion)")
                         .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
-                    if updater.updateAvailable {
-                        Text("v\(updater.latestVersion) available")
-                            .font(.system(size: 10)).foregroundColor(Color(hex: "FF9F0A"))
-                    } else {
-                        Text("Apple Silicon  ·  macOS 13+  ·  MIT")
-                            .font(.system(size: 10)).foregroundColor(Color(hex: "666680"))
+                    Group {
+                        switch updater.updatePhase {
+                        case .idle:
+                            if updater.updateAvailable {
+                                Text("v\(updater.latestVersion) available")
+                                    .foregroundColor(Color(hex: "FF9F0A"))
+                            } else {
+                                Text("Apple Silicon  ·  macOS 13+  ·  MIT")
+                                    .foregroundColor(Color(hex: "666680"))
+                            }
+                        case .downloading:
+                            Text("Downloading v\(updater.latestVersion)…")
+                                .foregroundColor(Color(hex: "FF9F0A"))
+                        case .installing:
+                            Text("Installing…")
+                                .foregroundColor(Color(hex: "FF9F0A"))
+                        case .readyToRelaunch:
+                            Text("Ready — relaunch to apply")
+                                .foregroundColor(Color(hex: "30D158"))
+                        case .failed(let msg):
+                            Text(msg)
+                                .foregroundColor(Color(hex: "FF453A"))
+                        }
                     }
+                    .font(.system(size: 10))
                 }
                 Spacer()
-                if updater.updateAvailable {
-                    Button("Update") { updater.openReleasesPage() }
-                        .buttonStyle(.borderedProminent).tint(Color(hex: "FF9F0A"))
-                        .font(.system(size: 12, weight: .semibold))
+                Group {
+                    switch updater.updatePhase {
+                    case .idle:
+                        HStack(spacing: 6) {
+                            if updater.updateAvailable {
+                                Button("Update") { updater.startUpdate() }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(Color(hex: "FF9F0A"))
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            Button("Done") { isPresented = false }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Color(hex: "0A84FF"))
+                        }
+                    case .downloading:
+                        VStack(alignment: .trailing, spacing: 3) {
+                            ProgressView(value: updater.downloadFraction)
+                                .progressViewStyle(.linear)
+                                .tint(Color(hex: "FF9F0A"))
+                                .frame(width: 80)
+                            Text("\(Int(updater.downloadFraction * 100))%")
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(Color(hex: "888899"))
+                        }
+                    case .installing:
+                        ProgressView()
+                            .scaleEffect(0.75)
+                            .tint(Color(hex: "FF9F0A"))
+                    case .readyToRelaunch:
+                        Button("Relaunch") { updater.relaunch() }
+                            .buttonStyle(.borderedProminent)
+                            .tint(Color(hex: "30D158"))
+                            .font(.system(size: 12, weight: .semibold))
+                    case .failed:
+                        Button("Dismiss") { updater.dismissUpdateError() }
+                            .buttonStyle(.bordered)
+                            .font(.system(size: 12))
+                    }
                 }
-                Button("Done") { isPresented = false }
-                    .buttonStyle(.borderedProminent).tint(Color(hex: "0A84FF"))
             }
         }
         .padding(22).frame(width: 320)
