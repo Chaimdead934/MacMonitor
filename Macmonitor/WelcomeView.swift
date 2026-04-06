@@ -152,7 +152,7 @@ private struct StepPermission: View {
                 PermRow(icon: "cpu",              color: "0A84FF",
                         title: "CPU & Memory",    desc: "Read directly from macOS — no password needed.")
                 PermRow(icon: "rectangle.3.group",color: "BF5AF2",
-                        title: "GPU & Temps",     desc: "Uses mactop under the hood (brew install mactop).")
+                        title: "GPU & Temps",     desc: "Native SMC + IOReport sensors — no third-party dependencies.")
                 PermRow(icon: "bolt.fill",        color: "FFD60A",
                         title: "Power rails",     desc: "ANE, DRAM, GPU SRAM, total system power.")
                 PermRow(icon: "battery.75percent",color: "30D158",

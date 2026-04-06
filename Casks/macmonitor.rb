@@ -9,7 +9,7 @@
 #   brew upgrade --cask macmonitor
 
 cask "macmonitor" do
-  version "1.1.5"
+  version "2.0.0"
   sha256 "PLACEHOLDER_SHA256_UPDATED_AUTOMATICALLY_BY_CI"
 
   url "https://github.com/ryyansafar/MacMonitor/releases/download/v#{version}/MacMonitor-#{version}.dmg"
@@ -17,26 +17,36 @@ cask "macmonitor" do
   desc "Real-time Apple Silicon system monitor — menu bar app and desktop widget"
   homepage "https://github.com/ryyansafar/MacMonitor"
 
-  # Apple Silicon only — M1 / M2 / M3 / M4
-  depends_on macos:  ">= :ventura"
-  depends_on arch:   :arm64
+  # Apple Silicon only — M1 through M5+, macOS 13 Ventura and later
+  depends_on macos: ">= :ventura"
+  depends_on arch:  :arm64
 
   app "Macmonitor.app"
 
-  # Post-install: install mactop if missing (powers GPU, temps, power rails)
+  # Post-install: install the privileged helper that powers GPU, temps, and power rails.
+  # The helper reads IOReport and SMC directly — no third-party tools required.
   postflight do
-    system_command "/bin/bash",
-                   args: ["-c", "command -v mactop >/dev/null 2>&1 || /opt/homebrew/bin/brew install mactop"],
-                   sudo: false
+    helper_dir  = "/Users/Shared/MacMonitor"
+    helper_path = "#{helper_dir}/macmonitor-helper"
+
+    # Only install if the helper isn't already present and working
+    unless File.executable?(helper_path)
+      system_command "/bin/mkdir", args: ["-p", helper_dir], sudo: true
+      system_command "/bin/cp",
+                     args: ["#{staged_path}/MacMonitor.app/Contents/MacOS/macmonitor-helper", helper_path],
+                     sudo: true
+      system_command "/bin/chmod", args: ["755", helper_path], sudo: true
+    end
   end
 
-  # Uninstall: remove all traces
-  uninstall quit: "rybo.Macmonitor"
+  # Uninstall: quit app and remove helper
+  uninstall quit:   "rybo.Macmonitor",
+            delete: "/Users/Shared/MacMonitor/macmonitor-helper"
 
   zap trash: [
     "~/Library/Preferences/rybo.Macmonitor.plist",
     "~/Library/Application Support/Macmonitor",
     "~/Library/Caches/rybo.Macmonitor",
-    "/etc/sudoers.d/macmonitor",
+    "/etc/sudoers.d/macmonitor-helper",
   ]
 end

@@ -10,13 +10,17 @@ struct PopoverView: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
                 Header(model: model, showSettings: $showSettings)
-                if model.mactopMissing {
-                    MactopMissingBanner()
+                if model.helperMissing {
+                    HelperMissingBanner()
                 }
                 sep
                 CPUSection(model: model)
                 sep
                 GPUSection(model: model)
+                if model.fanRPM > 0 {
+                    sep
+                    FanSection(model: model)
+                }
                 sep
                 MemorySection(model: model)
                 sep
@@ -46,16 +50,16 @@ struct PopoverView: View {
     }
 }
 
-// MARK: - mactop missing banner
+// MARK: - Helper missing banner
 
-private struct MactopMissingBanner: View {
+private struct HelperMissingBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundColor(Color(hex: "FF9F0A"))
                 .font(.system(size: 11))
             VStack(alignment: .leading, spacing: 1) {
-                Text("mactop not found")
+                Text("System helper not installed")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(Color(hex: "FF9F0A"))
                 Text("Run Install.command from the DMG to enable GPU, temps, and power data.")
@@ -143,6 +147,12 @@ private struct CPUSection: View {
                 Row(label: "P-cluster  \(model.pCoresMHz) MHz") {
                     StatBar(pct: model.pCoresPct, color: Color(hex: "BF5AF2"))
                 }
+                // M5+ Super cluster — only shown when present
+                if model.sClusterPct > 0 || model.sClusterMHz > 0 {
+                    Row(label: "S-cluster  \(model.sClusterMHz) MHz") {
+                        StatBar(pct: model.sClusterPct, color: Color(hex: "FF6B6B"))
+                    }
+                }
             }
             if !model.perCoreCPU.isEmpty {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 4) {
@@ -155,11 +165,34 @@ private struct CPUSection: View {
             HStack {
                 Pill(icon: "thermometer", val: String(format: "%.0f°C", model.cpuTemp),
                      color: tempColor(model.cpuTemp))
+                if model.cpuDieHotspot > 0 {
+                    Pill(icon: "thermometer.sun.fill",
+                         val: String(format: "%.0f°C", model.cpuDieHotspot),
+                         color: tempColor(model.cpuDieHotspot))
+                }
                 Spacer()
                 Pill(icon: "bolt", val: String(format: "%.2f W", model.cpuPower),
                      color: Color(hex: "FFD60A"))
             }
             .padding(.top, 2)
+        }
+    }
+}
+
+// MARK: - Fan (hidden on fanless models)
+
+private struct FanSection: View {
+    @ObservedObject var model: SystemStatsModel
+    var body: some View {
+        SectionBox(icon: "fan", title: "Fan") {
+            Row(label: "Speed") {
+                HStack {
+                    Text("\(model.fanRPM) RPM")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+            }
         }
     }
 }

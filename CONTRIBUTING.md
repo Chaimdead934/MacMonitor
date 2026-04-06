@@ -1,222 +1,298 @@
 # Contributing to MacMonitor
 
-Thanks for taking the time to contribute. MacMonitor is a small, focused tool — contributions that keep it fast, native, and dependency-light are most welcome.
+Thanks for taking the time to contribute. MacMonitor is intentionally small, native, and dependency-free — contributions that keep it fast and close to the metal are most welcome.
 
 ---
 
-## Table of contents
+## Table of Contents
 
-- [Development environment](#development-environment)
-- [Architecture overview](#architecture-overview)
-- [Code style](#code-style)
-- [Opening an issue](#opening-an-issue)
-- [Submitting a pull request](#submitting-a-pull-request)
-- [Good first issues](#good-first-issues)
-- [What we won't merge](#what-we-wont-merge)
+- [Development Setup](#development-setup)
+- [Architecture Overview](#architecture-overview)
+- [Adding a New Mac Model](#adding-a-new-mac-model)
+- [Code Style](#code-style)
+- [Opening an Issue](#opening-an-issue)
+- [Submitting a Pull Request](#submitting-a-pull-request)
+- [Good First Issues](#good-first-issues)
+- [What We Won't Merge](#what-we-wont-merge)
+- [Release Process](#release-process)
+- [Support the Project](#support-the-project)
 
 ---
 
-## Development environment
+## Development Setup
 
-**Required:**
+**Requirements:**
 
 | Tool | Version | Notes |
 |------|---------|-------|
-| Xcode | 15.0+ | Download from the Mac App Store |
+| Xcode | 15.0+ | Mac App Store |
 | macOS | 13 Ventura+ | Apple Silicon only |
-| mactop | latest | `brew install mactop` |
-| Git | any | Pre-installed on macOS |
+| Git | any | Pre-installed |
 
-**Recommended:**
+**Optional but useful:**
+- SwiftLint — `brew install swiftlint` (run before PRs)
+- GitHub CLI — `brew install gh` (for releases)
 
-- SwiftLint — `brew install swiftlint` (run before submitting PRs)
-- GitHub CLI — `brew install gh` (for creating releases)
-
-**Setup:**
+**Steps:**
 
 ```bash
-# 1. Fork the repo on GitHub, then clone your fork
+# 1. Fork the repo, then clone your fork
 git clone https://github.com/ryyansafar/MacMonitor.git
 cd MacMonitor
 
-# 2. Install mactop
-brew install mactop
-
-# 3. Configure passwordless sudo (needed for GPU + power data)
-MACTOP=$(which mactop)
-echo "$(whoami) ALL=(ALL) NOPASSWD: $MACTOP" | sudo tee /etc/sudoers.d/macmonitor
-sudo chmod 440 /etc/sudoers.d/macmonitor
-
-# 4. Open in Xcode
+# 2. Open in Xcode
 open Macmonitor.xcodeproj
 ```
 
 In Xcode:
-- Select the `Macmonitor` target → **Signing & Capabilities** → set **Team** to your Apple ID
+- Select the `Macmonitor` target → **Signing & Capabilities** → set **Team** to your Apple ID (free account is fine)
 - Do the same for `MacMonitorWidget`
-- Press `Cmd+R` to build and run
+- Press `Cmd+R` — the app appears in your menu bar
 
-The app will appear in your menu bar with no Dock icon.
+**Build and install the privileged helper (needed for GPU/temps/power):**
+
+```bash
+SDK=$(xcrun --show-sdk-path)
+
+clang -ObjC \
+  -o /tmp/macmonitor-helper \
+  helper/macmonitor-helper.m \
+  Macmonitor/IOReportWrapper.m \
+  Macmonitor/SMC.c \
+  -I Macmonitor/ \
+  -framework Foundation -framework IOKit -framework CoreFoundation \
+  -isysroot "$SDK" -L "$SDK/usr/lib" -lIOReport
+
+mkdir -p /Users/Shared/MacMonitor
+cp /tmp/macmonitor-helper /Users/Shared/MacMonitor/macmonitor-helper
+chmod 755 /Users/Shared/MacMonitor/macmonitor-helper
+```
+
+The app will prompt for admin approval on first launch to configure sudoers access for the helper.
 
 ---
 
-## Architecture overview
+## Architecture Overview
 
 ```
-SystemStatsModel        ← single ObservableObject shared by all SwiftUI views
+SystemStatsModel  (ObservableObject — single source of truth for all views)
     │
-    ├── CPU             host_processor_info (two-sample delta, no sudo)
-    ├── Memory          vm_statistics64 (no sudo)
-    ├── Network         netstat -ib delta (no sudo)
-    ├── Battery         pmset + ioreg (no sudo)
-    └── GPU / Power     sudo mactop --headless --count 1 --format json
+    ├── CPU          host_processor_info()         [Mach kernel, no sudo]
+    ├── Memory       vm_statistics64()              [Mach kernel, no sudo]
+    ├── Network      getifaddrs() delta             [BSD, no sudo]
+    ├── Disk I/O     IOKit disk stats delta         [IOKit, no sudo]
+    ├── Battery      IOKit / ioreg                  [IOKit, no sudo]
+    └── GPU / Power  macmonitor-helper              [IOReport + SMC + HID, needs root]
+                         └── IOReportWrapper.m      [Energy Model, CPU/GPU Stats, AMC/PMP]
+                         └── SMC.c                  [AppleSMC: temps, fan, PSTR]
+                         └── IOHIDEventSystem       [PMU tdie sensors]
 ```
+
+**Key files:**
+
+| File | Purpose |
+|------|---------|
+| `Macmonitor/SystemStatsModel.swift` | All published state, timers, sampling logic |
+| `Macmonitor/PopoverView.swift` | The full dashboard SwiftUI view |
+| `Macmonitor/IOReportWrapper.m` | Native IOReport + HID sampling (Obj-C) |
+| `Macmonitor/IOReportWrapper.h` | `IOReportData` struct — the data contract |
+| `Macmonitor/SMC.c` / `SMC.h` | Apple SMC read interface |
+| `helper/macmonitor-helper.m` | Privileged binary — collects metrics, prints JSON, exits |
+| `MacMonitorWidget/` | Standalone WidgetKit extension |
 
 **Key design decisions:**
 
-- **No App Sandbox.** Required to access Mach kernel APIs and run mactop. This means MacMonitor cannot be submitted to the Mac App Store.
-- **No App Groups.** The widget collects its own data using Mach kernel APIs directly, avoiding the need for a paid Apple Developer account.
-- **mactop for Apple Silicon metrics.** GPU, cluster temperatures, ANE power, and DRAM power aren't exposed through public macOS APIs. mactop uses private Apple performance counters. MacMonitor shells out to mactop rather than replicating its approach.
-- **Two-sample CPU delta.** CPU usage is calculated by sampling tick counters, sleeping briefly, sampling again, then computing the delta. The widget does this on a background queue to avoid blocking the UI thread.
+- **No App Sandbox** — Required to access Mach kernel APIs and IOReport. MacMonitor cannot be on the Mac App Store, but freely distributable as a DMG.
+- **No third-party packages** — Zero Swift Package Manager dependencies. Everything is macOS native.
+- **Privileged helper pattern** — IOReport power sampling needs root. A minimal binary (`macmonitor-helper`) runs with elevated privileges, outputs JSON to stdout, and exits. The main app parses the JSON. This is the smallest possible privilege surface.
+- **Two-sample delta** — IOReport, CPU ticks, DRAM bandwidth, and network are all rate metrics (energy/time = watts, ticks/time = %, bytes/time = GB/s). MacMonitor takes two samples 100ms apart and divides by the measured interval.
+- **Persistent IOReport subscription** — `IOReportWrapper` creates one subscription at `+initialize` and reuses it across calls. Creating a subscription per-call is slow (~50ms overhead).
 
 ---
 
-## Code style
+## Adding a New Mac Model
 
-MacMonitor uses SwiftUI and follows a few conventions:
+MacMonitor's sensor keys are verified against real hardware. If you have an M3, M4, M3 Pro, M4 Max, or any other Mac not in the tested hardware table, you can help validate sensors in 20 minutes.
 
-**Naming:**
-- `@Published` properties use camelCase and are named after what they represent, not how they're collected (`gpuUsage`, not `mactopGPUPercent`)
-- Views are named after what they display (`PopoverView`, `BatterySection`) not how they're structured (`VerticalStack`)
-- Private helpers in model files use `// MARK: - Section` comments to group related code
+**Step 1 — Build the scanner tools:**
 
-**Layout:**
-- Indent with 4 spaces (Xcode default)
-- Opening braces on the same line
-- One blank line between `@Published` declarations and method definitions
+```bash
+cd sensor-research
 
-**UI:**
-- All colours are defined using the `Color(hex:)` extension — no hard-coded `Color(.systemBlue)` calls
-- Dark-mode only (the app sets `.preferredColorScheme(.dark)` at the top level)
-- Use the existing colour palette: `#0A84FF` (blue), `#30D158` (green), `#BF5AF2` (purple), `#FF9F0A` (orange), `#FF453A` (red), `#FFD60A` (yellow), `#0E0E12` (background)
+SDK=$(xcrun --show-sdk-path)
 
-**Data collection:**
-- Heavy work (mactop, ioreg, pmset) runs on a background `DispatchQueue`, never on the main thread
-- Results are published back to the main thread via `DispatchQueue.main.async`
-- Shell helpers use the `shell(_ path: String, _ args: [String]) -> String` function in `SystemStatsModel` — avoid `Process` duplication
+# SMC + IOReport scanner
+clang -ObjC -o what_is_accurate what_is_accurate.m mactop_smc.c \
+  -framework Foundation -framework IOKit \
+  -isysroot "$SDK" -L "$SDK/usr/lib" -lIOReport
+
+# HID thermal sensor scanner
+clang -ObjC -o hid_scanner hid_scanner.m \
+  -framework Foundation -framework IOKit
+```
+
+**Step 2 — Run them:**
+
+```bash
+sudo ./what_is_accurate > smc_keys_$(sw_vers -productVersion)_$(sysctl -n hw.model).txt
+./hid_scanner > hid_sensors_$(sw_vers -productVersion)_$(sysctl -n hw.model).txt
+```
+
+**Step 3 — Cross-check with mactop (if available):**
+
+```bash
+sudo mactop --dump-temps >> smc_keys_$(sw_vers -productVersion)_$(sysctl -n hw.model).txt
+```
+
+**Step 4 — Open a PR** with:
+- The two output files
+- Your `hw.model` string (`sysctl -n hw.model`)
+- Your chip string (`sysctl -n machdep.cpu.brand_string`)
+- Whether your Mac has a fan and how many
+
+We'll update `SENSORS.md`, `IOReportWrapper.m` if needed, and add you to the hardware table in `README.md`.
 
 ---
 
-## Opening an issue
+## Code Style
 
-Before opening an issue, please:
+**Swift (SwiftUI views and SystemStatsModel):**
+- 4-space indentation (Xcode default)
+- `@Published` properties use camelCase and describe what they represent (`gpuUsage`, not `ioReportGPUPercentValue`)
+- Views named after what they display: `CPUSection`, `FanSection`, `PowerTile`
+- Private helpers grouped with `// MARK: - Section`
+- All colors defined via `Color(hex:)` extension — never `Color(.systemBlue)` or literals
+- Dark-mode only (`preferredColorScheme(.dark)` at the root)
+- Color palette: `#0A84FF` blue · `#30D158` green · `#BF5AF2` purple · `#FF9F0A` orange · `#FF453A` red · `#FFD60A` yellow · `#0E0E12` background
 
-1. Search existing issues to avoid duplicates
-2. Run MacMonitor and check the Console app (Filter: `Macmonitor`) for any error messages
+**Objective-C (IOReportWrapper, SMC, helper):**
+- Follow the existing style in `IOReportWrapper.m` — C strings in hot paths (no ObjC bridge allocations per channel)
+- New SMC keys must be documented in `SENSORS.md` before merging
+- All sensor reads must have a validity check (e.g. `value > 10.0 && value < 150.0` for temperatures)
+- Prefer `static` file-scope globals for persistent state (subscription, client, key arrays)
+
+**Data flow:**
+- Heavy work on `samplerQueue` (background DispatchQueue), never on main thread
+- Results published back via `DispatchQueue.main.async`
+- Use `shellResult()` in SystemStatsModel for subprocess calls — don't add new `Process` instantiations
+
+---
+
+## Opening an Issue
+
+Search existing issues before filing a new one.
 
 **Bug report — include:**
-- macOS version (`sw_vers -productVersion`)
-- Chip (`system_profiler SPHardwareDataType | grep "Chip"`)
-- mactop version (`mactop --version`)
-- What you expected to happen
-- What actually happened
-- Steps to reproduce
+- macOS version: `sw_vers -productVersion`
+- Chip: `sysctl -n machdep.cpu.brand_string`
+- Model: `sysctl -n hw.model`
+- Console logs: open Console.app, filter by `Macmonitor`, reproduce the bug, paste the relevant lines
+- What you expected vs what happened + steps to reproduce
 
 **Feature request — include:**
-- What metric or capability you'd like to add
-- What data source would provide it (or your best guess)
-- Why it belongs in MacMonitor rather than a separate tool
+- What metric or capability you want
+- What data source it would use (public API, IOReport group, SMC key)
+- Why it fits in MacMonitor's scope (menu bar / dashboard / widget)
 
 ---
 
-## Submitting a pull request
+## Submitting a Pull Request
 
-1. **Open an issue first** for anything beyond a trivial fix. It saves everyone time if we discuss approach before implementation.
+1. **Open an issue first** for anything beyond a trivial fix — saves time if the approach needs discussion before implementation.
 
-2. **Fork and branch:**
+2. **Branch:**
    ```bash
-   git checkout -b feat/descriptive-name
+   git checkout -b feat/your-feature-name
    # or
    git checkout -b fix/what-was-broken
    ```
 
-3. **Keep PRs focused.** One feature or fix per PR. If you're cleaning up unrelated code at the same time, separate commits are fine; separate PRs are better.
+3. **Keep PRs focused.** One feature or fix per PR. Unrelated cleanup in a separate PR.
 
-4. **Test on device.** The simulator does not support Mach kernel CPU sampling or mactop. All testing must be done on a physical Apple Silicon Mac.
+4. **Test on a physical device.** The iOS/macOS Simulator does not support Mach kernel CPU sampling, IOReport, or SMC. All testing must happen on real Apple Silicon hardware.
 
-5. **Check these before submitting:**
-   - [ ] App builds with no warnings for both `Macmonitor` and `MacMonitorWidget` targets
-   - [ ] mactop data still appears (GPU, temps, power rails)
-   - [ ] Battery section shows correct values (`pmset -g batt` output matches)
-   - [ ] Widget renders correctly in both Small and Medium sizes (use the Widget Simulator in Xcode)
-   - [ ] First-launch welcome window appears after `defaults delete rybo.Macmonitor hasLaunched`
-   - [ ] Memory usage of the app itself stays below ~30 MB at idle
+5. **PR checklist:**
+   - [ ] Builds with no warnings (`Macmonitor` and `MacMonitorWidget` targets)
+   - [ ] Helper builds cleanly with the clang command in [Development Setup](#development-setup)
+   - [ ] All sensor values look correct vs `mactop --dump-temps` / `mactop --headless`
+   - [ ] Battery section values match `pmset -g batt`
+   - [ ] Widget renders in both Small and Medium (Widget Simulator in Xcode)
+   - [ ] First-launch welcome window shows after `defaults delete rybo.Macmonitor hasLaunched`
+   - [ ] App memory stays below ~30 MB at idle (check with Activity Monitor)
+   - [ ] New SMC keys documented in `SENSORS.md`
 
-6. **PR description — include:**
+6. **PR description:**
    - What changed and why
-   - Any trade-offs or alternatives you considered
-   - Screenshots if the change affects the UI
+   - Trade-offs or alternatives you considered
+   - Screenshots if UI is affected
 
 ---
 
-## Good first issues
+## Good First Issues
 
-If you're new to the project, these are good starting points:
-
-- **Display thermal state as text** — `ProcessInfo.thermalState` returns `.nominal`, `.fair`, `.serious`, `.critical`. The header shows a coloured dot but not the text label.
-- **Add disk space section** — available/total for the main volume, using `FileManager.default.volumeAvailableCapacityForImportantUsage`
-- **Configurable refresh interval** — let users set the menu bar label refresh from 1s to 10s via Settings
-- **Keyboard shortcut to open/close popover** — a global hotkey using `NSEvent.addGlobalMonitorForEvents`
-- **Memory pressure label** — `HOST_VM_INFO64` includes a memory pressure value; surface it alongside the memory bar
-- **Improve DMG background** — the current DMG uses a plain white background; a custom dark background image would be more consistent with the app's aesthetic
-
----
-
-## What we won't merge
-
-- **Anything that requires a paid Apple Developer account** to build from source (App Groups, entitlements that need distribution provisioning)
-- **Additional third-party dependencies** — the goal is to stay as close to zero external Swift packages as possible
-- **Mac App Store compatibility changes** — the app's core features require disabling the sandbox
-- **UI changes that add visual noise** — the dashboard is already information-dense; new metrics need to fit cleanly or replace something
-- **Intel Mac support** — mactop, per-core Apple Silicon cluster data, and ANE/DRAM power rails are Apple Silicon-specific
+| Issue | Where to look |
+|-------|--------------|
+| Dual-fan support | `IOReportWrapper.m` — add `F1Ac` read; `PopoverView.swift` — add second fan row |
+| Configurable refresh interval | `SystemStatsModel.swift` timer setup + `SettingsSheet` in `PopoverView.swift` |
+| Memory pressure label | `SystemStatsModel.swift` — `HOST_VM_INFO64` has a `external_page_count`; surface it in `MemorySection` |
+| Global keyboard shortcut | `AppDelegate.swift` — `NSEvent.addGlobalMonitorForEvents(matching: .keyDown)` |
+| Disk space section | `PopoverView.swift` — `FileManager.default.volumeAvailableCapacityForImportantUsage` |
+| Per-core temperature display | `IOReportWrapper.m` — expose individual `Tp*` key values; `PopoverView.swift` — add core temp grid |
+| M3/M4 sensor validation | See [Adding a New Mac Model](#adding-a-new-mac-model) |
 
 ---
 
-## Release process (for maintainers)
+## What We Won't Merge
 
-Releases are fully automated. No manual DMG building or formula editing required.
+- Anything that requires a **paid Apple Developer account** to build from source
+- **New third-party Swift Package dependencies** — zero-dependency is a feature
+- **Mac App Store compatibility shims** — sandbox restrictions break core functionality
+- **Intel Mac support** — IOReport cluster data, ANE power, and per-die temperatures are Apple Silicon-specific
+- **UI changes that increase visual noise** — the dashboard is already information-dense; new metrics need to replace something or fit cleanly in a new section
+- **Polling-based workarounds** for data that's available natively via IOReport or SMC
+
+---
+
+## Release Process
+
+Fully automated — no manual DMG building or formula editing.
 
 ```bash
-# 1. Bump CFBundleShortVersionString in Xcode to match the new tag
-# 2. Commit + tag
-git commit -am "chore: bump version to 1.x.0"
-git tag v1.x.0
+# 1. Bump version in Xcode (MARKETING_VERSION in project.pbxproj)
+# 2. Update CHANGELOG.md
+# 3. Commit and tag
+git commit -am "chore: bump version to 2.x.0"
+git tag v2.x.0
 git push origin main --tags
 ```
 
-GitHub Actions takes it from there:
+GitHub Actions handles the rest:
 
-| Workflow | Trigger | Does |
-|----------|---------|------|
+| Workflow | Trigger | What it does |
+|----------|---------|-------------|
 | `release.yml` | `v*` tag pushed | Builds DMG on macOS runner, creates GitHub Release, attaches `.dmg` |
 | `update-brew.yml` | Release published | Downloads DMG, computes SHA256, commits updated `Casks/macmonitor.rb` |
 
-Users running `brew upgrade --cask macmonitor` get the new version automatically within ~5 minutes of the release being published.
+Users on `brew upgrade --cask macmonitor` get the new version within ~5 minutes.
 
 ---
 
-## Support the project
+## Support the Project
 
-If you'd like to support development:
+If MacMonitor is useful to you:
 
-- [ryyansafar.site](https://ryyansafar.site)
-- [github.com/ryyansafar](https://github.com/ryyansafar)
-- [buymeacoffee.com/ryyansafar](https://buymeacoffee.com/ryyansafar)
-- [paypal.me/ryyansafar](https://www.paypal.com/paypalme/ryyansafar)
-- [razorpay.me/@ryyansafar](https://razorpay.me/@ryyansafar)
+| Platform | Link |
+|----------|------|
+| Portfolio | [ryyansafar.site](https://ryyansafar.site) |
+| GitHub | [github.com/ryyansafar](https://github.com/ryyansafar) |
+| Buy Me a Coffee | [buymeacoffee.com/ryyansafar](https://buymeacoffee.com/ryyansafar) |
+| PayPal | [paypal.me/ryyansafar](https://www.paypal.com/paypalme/ryyansafar) |
+| Razorpay | [razorpay.me/@ryyansafar](https://razorpay.me/@ryyansafar) |
+
+Starring the repo is free and helps MacMonitor get discovered.
 
 ---
 
 ## Questions?
 
-Open a [GitHub Discussion](../../discussions) for anything that's not a bug or feature request — architecture questions, ideas, or just "would this be welcome?".
+Open a [GitHub Discussion](../../discussions) for anything that isn't a bug or feature request — architecture ideas, "would this be welcome?", or general questions about how it works.

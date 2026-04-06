@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 class AppDelegate: NSObject, NSApplicationDelegate {
 
@@ -7,7 +8,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var popover    = NSPopover()
     var welcomeWin: NSWindow?
     let model      = SystemStatsModel()
-    private var labelTimer: Timer?
+
+    // Subscribe to model changes so the label updates in sync with each tick,
+    // not on a separate independent timer that may fire before data is ready.
+    private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -15,9 +19,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBar()
         model.startMonitoring()
 
-        labelTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.updateLabel()
-        }
+        // Drive the label from published model values — fires immediately on change
+        Publishers.CombineLatest(model.$cpuUsage, model.$memPct)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] cpu, mem in
+                self?.updateLabel(cpu: cpu, mem: mem)
+            }
+            .store(in: &cancellables)
 
         // Show welcome window on very first launch
         if !UserDefaults.standard.bool(forKey: "hasLaunched") {
@@ -51,10 +59,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    private func updateLabel() {
+    private func updateLabel(cpu: Int, mem: Int) {
         guard let btn = statusItem?.button else { return }
-        let cpu = model.cpuUsage
-        let mem = model.memPct
         let dot = cpu >= 85 || mem >= 85 ? "🔴"
                 : cpu >= 60 || mem >= 60 ? "🟡" : "🟢"
         btn.title = "\(dot) CPU \(cpu)%  MEM \(mem)%"
@@ -87,7 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                                 action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit MacMonitor",
-                                action: #selector(NSApp.terminate), keyEquivalent: "q"))
+                                action: #selector(NSApp.terminate(_:)), keyEquivalent: "q"))
         statusItem?.menu = menu
         statusItem?.button?.performClick(nil)
         statusItem?.menu = nil
@@ -106,11 +112,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing:      .buffered,
             defer:        false
         )
-        win.titlebarAppearsTransparent = true
-        win.titleVisibility            = .hidden
+        win.titlebarAppearsTransparent  = true
+        win.titleVisibility             = .hidden
         win.isMovableByWindowBackground = true
-        win.backgroundColor            = NSColor(Color(hex: "0E0E12"))
-        win.contentViewController      = NSHostingController(rootView: WelcomeView())
+        win.backgroundColor             = NSColor(Color(hex: "0E0E12"))
+        win.contentViewController       = NSHostingController(rootView: WelcomeView())
         win.center()
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -129,7 +135,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         win.title                      = "MacMonitor Settings"
         win.titlebarAppearsTransparent = true
         win.backgroundColor            = NSColor(Color(hex: "1C1C1E"))
-        @State var show = true
         win.contentViewController      = NSHostingController(
             rootView: SettingsSheet(isPresented: .constant(true))
                 .preferredColorScheme(.dark)
