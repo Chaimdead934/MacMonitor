@@ -39,6 +39,15 @@ cask "macmonitor" do
     end
   end
 
+  caveats <<~EOS
+    MacMonitor v2.0 no longer requires mactop.
+    If you had it installed for MacMonitor, you can safely remove it:
+      brew uninstall mactop
+
+    What's new: CPU die hotspot · fan RPM · chip variant (M2 Pro, M2 Max…)
+    Changelog: https://github.com/ryyansafar/MacMonitor/blob/main/CHANGELOG.md
+  EOS
+
   # Uninstall: quit app and remove helper
   uninstall quit:   "rybo.Macmonitor",
             delete: "/Users/Shared/MacMonitor/macmonitor-helper"
